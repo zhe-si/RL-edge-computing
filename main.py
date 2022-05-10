@@ -1,13 +1,8 @@
+#!/usr/bin/env python
+# -*- coding: UTF-8 -*-
 """
-Deep Deterministic Policy Gradient (DDPG), Reinforcement Learning.
-DDPG is Actor Critic based algorithm.
-Pendulum example.
-View more on my tutorial page: https://morvanzhou.github.io/tutorials/
-Using:
-tensorflow 1.0
-gym 0.8.0
+Created by lq on 2022/5/10.
 """
-
 import time
 import gym
 import numpy as np

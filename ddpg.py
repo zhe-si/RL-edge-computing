@@ -19,6 +19,10 @@ BATCH_SIZE = 32  # 一批训练的大小
 
 
 class DDPG(object):
+    """
+    DDPG
+    Actor Critic based algorithm.
+    """
     def __init__(self, a_dim, s_dim, a_bound, ):
         self.memory = np.zeros((MEMORY_CAPACITY, s_dim * 2 + a_dim + 1), dtype=np.float32)
         self.pointer = 0

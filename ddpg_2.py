@@ -21,6 +21,7 @@ BATCH_SIZE = 32
 class DDPG(object):
     """
     DDPG更新版本
+    Actor Critic based algorithm.
     对于目标网络，使用移动平均而不是使用分配功能来软替换目标参数。这样做，它在我的机器（CPU）上加速了 20%。
     """
 
