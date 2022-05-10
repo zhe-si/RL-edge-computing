@@ -2,16 +2,14 @@
 # -*- coding: UTF-8 -*-
 """
 Created by lq on 2022/5/10.
+
+using tensorflow 2.3 with cuda 10.1
 """
 import time
 import gym
 import numpy as np
-import tensorflow as tf2
 
 from ddpg import DDPG, MEMORY_CAPACITY
-
-tf = tf2.compat.v1
-tf.disable_v2_behavior()
 
 
 #####################  hyper parameters  ####################
