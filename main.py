@@ -39,24 +39,26 @@ def main():
 
     ddpg = DDPG(a_dim, s_dim, a_bound)
 
-    var = 3  # control exploration
+    var = 3  # 探索程度参数，越大越探索
     t1 = time.time()
     for i in range(MAX_EPISODES):
         s = env.reset()
+        # 单轮训练累计奖励
         ep_reward = 0
         for j in range(MAX_EP_STEPS):
             if RENDER:
                 env.render()
 
-            # Add exploration noise
             a = ddpg.choose_action(s)
-            a = np.clip(np.random.normal(a, var), -2, 2)  # add randomness to action selection for exploration
+            # 以输出的a为中心，以var为标准差，生成一个符合正态分布的随机数(探索)，并限制其上下界
+            a = np.clip(np.random.normal(a, var), -2, 2)
             s_, r, done, info = env.step(a)
 
             ddpg.store_transition(s, a, r / 10, s_)
 
+            # 经验池满，开始训练
             if ddpg.pointer > MEMORY_CAPACITY:
-                var *= .9995  # decay the action randomness
+                var *= .9995  # 逐步衰减探索程度
                 ddpg.learn()
 
             s = s_
