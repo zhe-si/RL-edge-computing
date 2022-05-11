@@ -30,6 +30,11 @@ class DDPG(object):
     Actor Critic based algorithm.
     """
     def __init__(self, a_dim, s_dim, a_bound):
+        """
+        :param a_dim: 动作空间维度
+        :param s_dim: 状态空间维度
+        :param a_bound: 动作空间上下限，ddpg默认输出 [-1, 1] 范围，通过此参数可放大范围。若有更复杂的需求，请自行对action进行变换。
+        """
         self.memory = np.zeros((MEMORY_CAPACITY, s_dim * 2 + a_dim + 1), dtype=np.float32)
         self.pointer = 0
         self.sess = tf.Session()
