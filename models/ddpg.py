@@ -21,7 +21,8 @@ GAMMA = 0.9  # reward discount
 TAU = 0.01  # soft replacement
 MEMORY_CAPACITY = 10000  # 经验池容量
 BATCH_SIZE = 32  # 一批训练的大小
-MODEL_SAVE_PATH = "../model"  # 模型保存路径
+MODEL_SAVE_PATH = "./data/model"  # 模型保存路径
+LOG_SAVE_PATH = "./data/log"  # 日志保存路径
 
 
 class DDPG(object):
@@ -68,11 +69,14 @@ class DDPG(object):
         td_error = tf.losses.mean_squared_error(labels=q_target, predictions=q)
         self.ctrain = tf.train.AdamOptimizer(LR_C).minimize(td_error, var_list=self.ce_params)
 
-        a_loss = - tf.reduce_mean(q)  # maximize the q
-        self.atrain = tf.train.AdamOptimizer(LR_A).minimize(a_loss, var_list=self.ae_params)
+        self.a_loss = - tf.reduce_mean(q)  # maximize the q
+        self.atrain = tf.train.AdamOptimizer(LR_A).minimize(self.a_loss, var_list=self.ae_params)
 
         self.saver = tf.train.Saver()
         self.create_time = int(datetime.now().timestamp())
+
+        tensorboard_log_path = f'{LOG_SAVE_PATH}/tensorboard-{self.create_time}'
+        self.summary_writer = tf.summary.FileWriter(tensorboard_log_path, graph=tf.get_default_graph(), flush_secs=10)
 
         self.sess.run(tf.global_variables_initializer())
 
@@ -85,13 +89,18 @@ class DDPG(object):
 
         indices = np.random.choice(MEMORY_CAPACITY, size=BATCH_SIZE)
         bt = self.memory[indices, :]
-        bs = bt[:, :self.s_dim]
-        ba = bt[:, self.s_dim: self.s_dim + self.a_dim]
-        br = bt[:, -self.s_dim - 1: -self.s_dim]
-        bs_ = bt[:, -self.s_dim:]
+        self._bs = bt[:, :self.s_dim]
+        self._ba = bt[:, self.s_dim: self.s_dim + self.a_dim]
+        self._br = bt[:, -self.s_dim - 1: -self.s_dim]
+        self._bs_ = bt[:, -self.s_dim:]
 
-        self.sess.run(self.atrain, {self.S: bs})
-        self.sess.run(self.ctrain, {self.S: bs, self.a: ba, self.R: br, self.S_: bs_})
+        self.sess.run(self.atrain, {self.S: self._bs})
+        self.sess.run(self.ctrain, {self.S: self._bs, self.a: self._ba, self.R: self._br, self.S_: self._bs_})
+
+    def cal_loss(self):
+        """必须在learn之后调用"""
+        loss = self.sess.run(self.a_loss, {self.S: self._bs, self.a: self._ba, self.R: self._br, self.S_: self._bs_})
+        return loss
 
     def store_transition(self, s, a, r, s_):
         transition = np.hstack((s, a, [r], s_))
@@ -126,6 +135,15 @@ class DDPG(object):
         self.saver.restore(self.sess, m_path)
         print("Model restored from file: %s" % MODEL_SAVE_PATH)
         return True
+
+    def print_tensorboard(self, value_dict, step):
+        """
+        打印到tensorboard
+        :param value_dict: 标签名 -> 标量数据 的字典
+        :param step: 步数
+        """
+        summary = tf.Summary(value=[tf.Summary.Value(tag=n, simple_value=v) for n, v in value_dict.items()])
+        self.summary_writer.add_summary(summary, step)
 
     def _build_a(self, s, scope, trainable):
         with tf.variable_scope(scope):

@@ -19,9 +19,6 @@ IS_TRAIN_MODE = True  # 训练、验证模式
 MAX_EPISODES = 200  # 最大训练轮次
 MAX_EP_STEPS = 200  # 单轮训练最大步数
 
-RENDER = True  # 展示动画
-ENV_NAME = 'Pendulum-v0'  # gym环境名称
-
 
 ###############################  training  ####################################
 @show_run_time()
@@ -29,6 +26,7 @@ def train(ddpg, env: AbsEnv):
     """训练"""
     max_reward = -float('inf')
     explore_degree = 3  # 探索程度参数，越大越探索
+    all_step = 0
     for i in range(MAX_EPISODES):
         s = env.reset()
         # 单轮训练累计奖励
@@ -47,9 +45,12 @@ def train(ddpg, env: AbsEnv):
             if ddpg.pointer > MEMORY_CAPACITY:
                 explore_degree *= .9995  # 逐步衰减探索程度
                 ddpg.learn()
+                ddpg.print_tensorboard({'loss': ddpg.cal_loss(), 'reward': r}, all_step)
 
             s = s_
             ep_reward += r
+            all_step += 1
+
             if j == MAX_EP_STEPS - 1:
                 print('Episode:', i, ' Reward: %i' % int(ep_reward), 'Explore: %.2f' % explore_degree, )
                 if i % 5 == 0 and ep_reward > max_reward:
@@ -78,7 +79,7 @@ def experiment(ddpg, env: AbsEnv):
 
 
 def main():
-    env = GymEnv(ENV_NAME, True)
+    env = GymEnv('Pendulum-v0', is_render=True)
 
     ddpg = DDPG(env.action_dim(), env.observation_dim(), env.action_radius())
     is_load = ddpg.load_model()
