@@ -18,7 +18,7 @@ MEMORY_CAPACITY = 10000
 BATCH_SIZE = 32
 
 
-class DDPG(object):
+class DDPGv2(object):
     """
     DDPG更新版本
     Actor Critic based algorithm.

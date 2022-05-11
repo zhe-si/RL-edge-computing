@@ -9,7 +9,7 @@ import sys
 
 import numpy as np
 
-from ddpg import DDPG, MEMORY_CAPACITY
+from models.ddpg import DDPG, MEMORY_CAPACITY
 from envs import AbsEnv, GymEnv
 from tools import show_run_time
 

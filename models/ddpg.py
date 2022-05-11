@@ -21,7 +21,7 @@ GAMMA = 0.9  # reward discount
 TAU = 0.01  # soft replacement
 MEMORY_CAPACITY = 10000  # 经验池容量
 BATCH_SIZE = 32  # 一批训练的大小
-MODEL_SAVE_PATH = "./model"  # 模型保存路径
+MODEL_SAVE_PATH = "../model"  # 模型保存路径
 
 
 class DDPG(object):
