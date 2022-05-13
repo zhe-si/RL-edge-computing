@@ -7,6 +7,40 @@ from envs import AbsEnv
 
 
 class SmallVideoEdgeCacheEnv(AbsEnv):
+    class Obs:
+        def __init__(self):
+            # 下行速率，从基站到用户
+            self.r0 = -1
+            # 回程速率，从服务器到基站
+            self.r1 = -1
+            # 用户终端播放速率
+            self.rp = -1
+            # 视频分块长度
+            self.s = -1
+            # 用户忍受的时延
+            self.t0 = -1
+            # 基站缓存大小
+            self.station_cache_size = -1
+            # 该基站的带宽，从基站到用户的总带宽
+            self.station_b = -1
+            # 基站对应用户数
+            self.station_user_num = -1
+
+            # # 播放量
+            # self.view = -1
+            # # 点赞量
+            # self.like = -1
+            # # 转发量
+            # self.share = -1
+            # # 评论量
+            # self.comment = -1
+            #
+            # # 视频分类
+            # self.type = -1
+
+    def __init__(self):
+        pass
+
     def observation_dim(self) -> int:
         """状态空间维度"""
 
