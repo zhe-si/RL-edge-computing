@@ -7,7 +7,6 @@ import copy
 import random
 import math
 
-
 random.seed(71)
 
 
@@ -22,8 +21,8 @@ class GlobalClock:
 
 
 class Video:
-    # 从1开始编号
-    now_id = 0
+    # 从0开始编号
+    now_id = -1
     # 假设60s视频对应内存大小为1MB
     SIZE_RANGE = (5 / 60, 3)
     VIDEO_PART_SIZE = 0.2
@@ -63,7 +62,7 @@ class Video:
 
 class VirtualServer:
     video_list = [Video.create_video() for _ in range(50000)]
-    video_list_copy = copy.deepcopy(video_list)
+    _video_list_copy = copy.deepcopy(video_list)
 
     # 每轮次统计信息
     round_step = 1
@@ -75,7 +74,7 @@ class VirtualServer:
     @classmethod
     def reset_all(cls):
         cls.reset_statistics()
-        cls.video_list = copy.deepcopy(cls.video_list_copy)
+        cls.video_list = copy.deepcopy(cls._video_list_copy)
 
     @classmethod
     def reset_statistics(cls):
@@ -107,7 +106,7 @@ class VirtualServer:
         cls.round_step += 1
         cls._update_r1(r1)
 
-        v = cls.video_list[v_id - 1]
+        v = cls.video_list[v_id]
         if start_part >= v.part_num:
             return 0
         return ((v.part_num - start_part - 1) * Video.VIDEO_PART_SIZE + v.last_part_size) / r1

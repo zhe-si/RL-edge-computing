@@ -3,6 +3,7 @@
 """
 Created by lq on 2022/5/13.
 """
+import heapq
 import random
 
 from envs.edge_cache.v_server import VirtualServer, GlobalClock
@@ -38,6 +39,8 @@ class FIFOCache:
     def __init__(self, cache_size, func_size, func_sort_key):
         self.cache_size = cache_size
         self.cache = {}
+        self.cache_sort_heap = []
+
         self.func_size = func_size
         self.func_sort_key = func_sort_key
         self.now_size = 0
@@ -46,13 +49,20 @@ class FIFOCache:
         if key in self.cache:
             self.now_size -= self.func_size(self.cache[key])
             self.cache.pop(key)
-        while self.now_size + self.func_size(value) > self.cache_size:
-            # 若空间不足，删除最早的一个，直到空间足够新的value
-            if len(self.cache) == 0:
+        value_size = self.func_size(value)
+        if value_size > self.cache_size:
+            print('INFO: value is tool big, no enough space to push')
+            return
+        while self.now_size + value_size > self.cache_size:
+            if len(self.cache_sort_heap) == 0:
+                print('WARNING: value is tool big, no enough space to push')
                 return
-            self._remove_old()
+            sort_key, oldest_v_key = heapq.heappop(self.cache_sort_heap)
+            v = self.cache.pop(oldest_v_key)
+            self.now_size -= self.func_size(v)
         self.cache[key] = value
-        self.now_size += self.func_size(value)
+        heapq.heappush(self.cache_sort_heap, (self.func_sort_key(value), key))
+        self.now_size += value_size
 
     def _remove_old(self):
         """删除比较值小的一个"""
@@ -83,10 +93,6 @@ class VirtualStation:
         :param r1_r: 回程速率浮动值
         """
         self.r1 = RandomChangeValue(r1, r1_r, r1_r)
-        # 主动缓存
-        # 受欢迎视频排名
-        self.popularity_videos = []
-        self.update_popularity_videos()
 
         # 基站缓存总大小
         self.cache_size = cache_size
@@ -103,10 +109,18 @@ class VirtualStation:
         # 主动缓存文件数
         self.cache_xn = 0
 
+        # 主动缓存
+        # 受欢迎视频排名
+        self.popularity_videos = []
+        # 主动缓存大小
+        self.active_cache_size = 0
+        self.cached_popularity_videos = {}
+        self.update_popularity_videos()
+
         # 每轮次统计信息
         self.round_step = 1
         # 请求次数
-        self.req_num = 0
+        self.req_num = 1
         # 命中次数
         self.hit_num = 0
         # 每轮下行速率统计
@@ -129,11 +143,7 @@ class VirtualStation:
         更新被动缓存，并清空被动缓存
         :param is_migrate: 是否从旧的缓存迁移数据
         """
-        initiative_cache_size = 0
-        for i in range(self.cache_xn):
-            v = self.popularity_videos[i]
-            initiative_cache_size += self._cal_video_cache_size(v)
-        video_passive_cache = FIFOCache(self.cache_size - initiative_cache_size,
+        video_passive_cache = FIFOCache(self.cache_size - self.active_cache_size,
                                         lambda _v: self._cal_video_cache_size(_v[0]),
                                         lambda _v: _v[1])
         if is_migrate:
@@ -142,12 +152,18 @@ class VirtualStation:
 
     def update_popularity_videos(self):
         """更新受欢迎视频排名"""
-        self.popularity_videos = sorted(VirtualServer.video_list, key=lambda v: self._popularity(v), reverse=True)
+        self.popularity_videos = sorted(VirtualServer.video_list, key=lambda _v: self._popularity(_v), reverse=True)
+        self.active_cache_size = 0
+        self.cached_popularity_videos = {}
+        for i in range(self.cache_xn):
+            v = self.popularity_videos[i]
+            self.active_cache_size += self._cal_video_cache_size(v)
+            self.cached_popularity_videos[v.id] = v
 
     def reset_statistics(self):
         """重置统计信息"""
         self.round_step = 1
-        self.req_num = 0
+        self.req_num = 1
         self.hit_num = 0
         self.r0_all = 0
         self.r0_min = float('inf')
@@ -171,8 +187,8 @@ class VirtualStation:
         self.round_step += 1
         self._update_r0(r0)
 
-        v = self._get_video_from_list(self.popularity_videos[:self.cache_xn], v_id)
-        if v is not None:
+        if v_id in self.cached_popularity_videos:
+            v = self.cached_popularity_videos[v_id]
             self.hit_num += 1
             return self._cal_cost(r0, v_id, v)
         elif v_id in self.video_passive_cache.cache:
@@ -181,7 +197,7 @@ class VirtualStation:
             return self._cal_cost(r0, v_id, video)
         else:
             # 主动和被动缓存都没命中，从服务器获取，并缓存到被动缓存
-            video = self._get_video_from_list(VirtualServer.video_list, v_id)
+            video = VirtualServer.video_list[v_id]
             self.video_passive_cache.push(v_id, (video, GlobalClock.get_now_time()))
             return 0.0, VirtualServer.get_video(v_id, self.r1.get_now_value(), 0) + video.size / r0
 

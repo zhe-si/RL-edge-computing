@@ -8,6 +8,8 @@ import random
 from envs.edge_cache.v_server import VirtualServer
 from envs.edge_cache.v_station import VirtualStation, RandomChangeValue
 
+random.seed(71)
+
 
 class VirtualUser:
     # TODO: 用户终端播放速率？应该是定值。。。

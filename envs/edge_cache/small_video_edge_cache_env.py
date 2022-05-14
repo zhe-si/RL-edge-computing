@@ -13,6 +13,8 @@ from envs.edge_cache.v_station import VirtualStation
 from envs.edge_cache.v_user import VirtualUser
 from tools import show_run_time
 
+random.seed(71)
+
 
 class SmallVideoEdgeCacheEnv(AbsEnv):
     STEP_USER_REQUERY = 100
@@ -54,12 +56,12 @@ class SmallVideoEdgeCacheEnv(AbsEnv):
     def standard_action(self, action):
         """标准化动作"""
         q, xn = action
-        # q: 0-100离散值，xn: 0-5000离散值
-        q = int((q + 1.0) * 100 / 2)
-        if q < 0:
-            q = 0
-        elif q > 100:
-            q = 100
+        # q: 1-101离散值，xn: 0-5000离散值
+        q = int((q + 1.0) * 100 / 2 + 1)
+        if q < 1:
+            q = 1
+        elif q > 101:
+            q = 101
         xn = int((xn + 1.0) * 5000 / 2)
         if xn < 0:
             xn = 0
@@ -104,6 +106,7 @@ class SmallVideoEdgeCacheEnv(AbsEnv):
                 i += 1
                 print(f'\r{(i / all_i):.2}', end='')
         print()
+        print(f'{self.v_station.cache_q}, {self.v_station.cache_xn}: {self.v_station.hit_num / self.v_station.req_num}')
 
         return self._get_obs(), 0, False, {}
 
