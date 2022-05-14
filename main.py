@@ -51,7 +51,7 @@ def train(ddpg, env: AbsEnv):
             ep_reward += r
             all_step += 1
 
-            if j == MAX_EP_STEPS - 1:
+            if j == MAX_EP_STEPS - 1 or done:
                 print('Episode:', i, ' Reward: %i' % int(ep_reward), 'Explore: %.2f' % explore_degree, )
                 if i % 5 == 0 and ep_reward > max_reward:
                     ddpg.save_model(global_step=i)
@@ -60,22 +60,29 @@ def train(ddpg, env: AbsEnv):
 
 
 ###############################  experiment  ####################################
-def experiment(ddpg, env: AbsEnv):
+def experiment(ddpg, env: AbsEnv, is_reboot=False):
     """评估、验证、使用模型"""
-    s = env.reset()
-
-    ep_reward = 0.0
-    step_num = 0
-
     while True:
-        a = ddpg.choose_action(s)
-        # 限制动作范围，并重映射动作值到正确范围
-        a = env.standard_action(a)
-        s, r, done, info = env.step(a)
+        s = env.reset()
+        print('start new experiment')
 
-        ep_reward += r
-        step_num += 1
-        print(f'Choose action: {a}, Reward avg: {ep_reward / step_num}')
+        ep_reward = 0.0
+        step_num = 0
+
+        while True:
+            a = ddpg.choose_action(s)
+            # 限制动作范围，并重映射动作值到正确范围
+            a = env.standard_action(a)
+            s, r, done, info = env.step(a)
+
+            ep_reward += r
+            step_num += 1
+            print(f'Choose action: {a}, Reward avg: {ep_reward / step_num}')
+
+            if done:
+                break
+        if not is_reboot:
+            break
 
 
 def main():
@@ -89,7 +96,7 @@ def main():
     else:
         if not is_load:
             print('WARNING: 模型验证模式下，模型加载失败', file=sys.stderr)
-        experiment(ddpg, env)
+        experiment(ddpg, env, True)
 
 
 if __name__ == '__main__':
