@@ -104,7 +104,7 @@ class VirtualStation:
         self.cache_xn = 0
 
         # 每轮次统计信息
-        self.round_step = 0
+        self.round_step = 1
         # 请求次数
         self.req_num = 0
         # 命中次数
@@ -146,7 +146,7 @@ class VirtualStation:
 
     def reset_statistics(self):
         """重置统计信息"""
-        self.round_step = 0
+        self.round_step = 1
         self.req_num = 0
         self.hit_num = 0
         self.r0_all = 0
@@ -181,7 +181,7 @@ class VirtualStation:
             return self._cal_cost(r0, v_id, video)
         else:
             # 主动和被动缓存都没命中，从服务器获取，并缓存到被动缓存
-            video = VirtualServer.video_list[v_id]
+            video = self._get_video_from_list(VirtualServer.video_list, v_id)
             self.video_passive_cache.push(v_id, (video, GlobalClock.get_now_time()))
             return 0.0, VirtualServer.get_video(v_id, self.r1.get_now_value(), 0) + video.size / r0
 

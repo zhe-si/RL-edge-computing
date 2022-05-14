@@ -49,9 +49,13 @@ class Video:
         self.comment = self.share + self.like * random.gauss(1.0, 0.2) + self.view * random.gauss(0.1, 0.1)
         if random.random() < 0.2:
             self.view *= random.gauss(0.25, 0.1)
+            self.view = int(self.view)
             self.like *= random.gauss(0.25, 0.1)
+            self.like = int(self.like)
             self.share *= random.gauss(0.25, 0.1)
+            self.share = int(self.share)
             self.comment *= random.gauss(0.25, 0.1)
+            self.comment = int(self.comment)
 
         # 视频分类
         # self.type = -1
@@ -62,7 +66,7 @@ class VirtualServer:
     video_list_copy = copy.deepcopy(video_list)
 
     # 每轮次统计信息
-    round_step = 0
+    round_step = 1
     # 每轮回程速率统计
     r1_all = 0
     r1_min = float('inf')
@@ -76,7 +80,7 @@ class VirtualServer:
     @classmethod
     def reset_statistics(cls):
         """重置统计信息"""
-        cls.round_step = 0
+        cls.round_step = 1
         cls.r0_all = 0
         cls.r0_min = float('inf')
         cls.r0_max = -float('inf')

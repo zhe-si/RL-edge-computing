@@ -10,7 +10,7 @@ import sys
 import numpy as np
 
 from models.ddpg import DDPG, MEMORY_CAPACITY
-from envs import AbsEnv, GymEnv
+from envs import AbsEnv, GymEnv, SmallVideoEdgeCacheEnv
 from tools import show_run_time
 
 #####################  hyper parameters  ####################
@@ -22,10 +22,14 @@ MAX_EP_STEPS = 200  # 单轮训练最大步数
 
 ###############################  training  ####################################
 @show_run_time()
-def train(ddpg, env: AbsEnv):
-    """训练"""
+def train(ddpg, env: AbsEnv, explore_degree):
+    """
+    训练
+    :param ddpg: DDPG模型
+    :param env: 环境
+    :param explore_degree: 探索程度
+    """
     max_reward = -float('inf')
-    explore_degree = 3  # 探索程度参数，越大越探索
     all_step = 0
     for i in range(MAX_EPISODES):
         s = env.reset()
@@ -86,13 +90,14 @@ def experiment(ddpg, env: AbsEnv, is_reboot=False):
 
 
 def main():
-    env = GymEnv('Pendulum-v0', is_render=True)
+    # env = GymEnv('Pendulum-v0', is_render=True)
+    env = SmallVideoEdgeCacheEnv()
 
     ddpg = DDPG(env.action_dim(), env.observation_dim(), env.action_radius())
     is_load = ddpg.load_model()
 
     if IS_TRAIN_MODE:
-        train(ddpg, env)
+        train(ddpg, env, env.action_radius() * 3)
     else:
         if not is_load:
             print('WARNING: 模型验证模式下，模型加载失败', file=sys.stderr)
