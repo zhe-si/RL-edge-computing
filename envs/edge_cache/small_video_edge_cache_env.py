@@ -11,22 +11,22 @@ from envs import AbsEnv
 from envs.edge_cache.v_server import VirtualServer, Video
 from envs.edge_cache.v_station import VirtualStation
 from envs.edge_cache.v_user import VirtualUser
-from tools import show_run_time
 
 random.seed(71)
 
 
 class SmallVideoEdgeCacheEnv(AbsEnv):
     STEP_USER_REQUERY = 100
-    STEP_USER_REQUERY_FLUCTUATION = 0.1
+    STEP_USER_REQUERY_FLUCTUATION = 0.1 * STEP_USER_REQUERY
 
     def __init__(self):
-        self.v_station = VirtualStation(2500, 150, 10)
+        self.v_station = VirtualStation(2000, 20, 2.8)
         self.user_num = 100
-        b_avg = self.v_station.station_bandwidth / self.user_num
+        # b_avg = self.v_station.station_bandwidth / self.user_num
         self.users = []
         for i in range(self.user_num):
-            self.users.append(VirtualUser(random.gauss(b_avg * 0.9, b_avg * 0.2)))
+            # self.users.append(VirtualUser(random.gauss(b_avg * 0.9, b_avg * 0.2)))
+            self.users.append(VirtualUser(1.5))
 
     def observation_dim(self) -> int:
         """状态空间维度"""
@@ -74,18 +74,16 @@ class SmallVideoEdgeCacheEnv(AbsEnv):
         重置、启动环境
         返回：状态
         """
-        self.v_station = VirtualStation(2500, 150, 10)
+        self.v_station = VirtualStation(2000, 20, 2.8)
         self.user_num = 100
-        b_avg = self.v_station.station_bandwidth / self.user_num
         self.users = []
         for i in range(self.user_num):
-            self.users.append(VirtualUser(random.gauss(b_avg * 0.9, b_avg * 0.2)))
+            self.users.append(VirtualUser(1.5))
 
         VirtualServer.reset_all()
 
         return self._get_obs()
 
-    @show_run_time()
     def step(self, action):
         """
         执行动作，更新环境状态
@@ -97,18 +95,60 @@ class SmallVideoEdgeCacheEnv(AbsEnv):
         self.v_station.cache_q = q
         self.v_station.cache_xn = xn
         i = 0
-        all_i = len(self.users) * self.STEP_USER_REQUERY
+        max_v_r_t = -1
+        max_cache_r_t = -1
         for u in self.users:
             req_num = int(random.gauss(self.STEP_USER_REQUERY, self.STEP_USER_REQUERY_FLUCTUATION))
             for _ in range(req_num):
-                u.play(self.v_station)
+                cache_r_t, v_r_t = u.play(self.v_station)
+                if max_v_r_t < v_r_t:
+                    max_v_r_t = v_r_t
+                if max_cache_r_t < cache_r_t:
+                    max_cache_r_t = cache_r_t
 
                 i += 1
-                print(f'\r{(i / all_i):.2}', end='')
-        print()
-        print(f'{self.v_station.cache_q}, {self.v_station.cache_xn}: {self.v_station.hit_num / self.v_station.req_num}')
+                # print(f'\r{(i / all_i):.2}', end='')
+        # print()
 
-        return self._get_obs(), 0, False, {}
+        done, punish = self._check_is_done(max_v_r_t, max_cache_r_t)
+        # done, punish = False, None
+        if punish is not None:
+            utility = punish
+        else:
+            utility = self.cal_reward()
+
+        print(f'{self.v_station.cache_q:3}, {self.v_station.cache_xn:4}: \t{(self.v_station.hit_num / self.v_station.req_num):.6}, \t{utility:.6}')
+
+        return self._get_obs(), utility, done, {}
+
+    def _check_is_done(self, max_v_r_t, max_cache_r_t):
+        """
+        返回 done、punish(若无惩罚，返回None)
+        """
+        # 主动缓存不可大于基站缓存空间
+        if self.v_station.active_cache_size > self.v_station.cache_size:
+            return True, -3
+        # 某视频缓存大小 <= 单个视频缓存最大段数 * 每段长度
+        # 单个视频最大缓存传输到用户的时间不可大于用户忍耐时间
+        if max_cache_r_t > VirtualUser.TOLERABLE_DELAY:
+            return True, -3
+        # 主动与被动缓存的最大视频的下载时间不可大于缓存视频的最大播放时间
+        if max_v_r_t > self.v_station.cache_q * Video.VIDEO_PART_SIZE / VirtualUser.PLAY_SPEED:
+            return True, -3
+        if self.v_station.cache_q > Video.SIZE_RANGE[1] / VirtualUser.PLAY_SPEED:
+            return True, -3
+        return False, None
+
+    def cal_reward(self):
+        PA = 0.552
+        fenmu = 0
+        for v in VirtualServer.video_list:
+            fenmu = fenmu + self.v_station.cached_popularity_videos_all[v.id][1] ** (-PA)
+        utility = 0
+        for v in VirtualServer.video_list:
+            if v.id in self.v_station.cached_popularity_videos or self.v_station.video_passive_cache.get(v.id) is not None:
+                utility = utility + self.v_station.cached_popularity_videos_all[v.id][1] ** (-PA) / fenmu
+        return utility
 
     def _get_obs(self):
         """获取当前状态"""

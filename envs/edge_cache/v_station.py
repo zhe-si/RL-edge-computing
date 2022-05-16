@@ -21,16 +21,16 @@ class RandomChangeValue:
         :param change_rate: 浮动变化速率，0-1之间
         """
         self.value = value
-        self.radius_low = -radius_low
-        self.radius_high = radius_high
+        self.radius_low = -abs(radius_low)
+        self.radius_high = abs(radius_high)
         self.now_percentage = 1.0
         self.change_rate = change_rate
 
     def get_now_value(self):
         u_d = random.choice([-1, 1])
         abs_radius = self.radius_high if u_d == 1 else abs(self.radius_low)
-        self.now_percentage *= u_d * random.gauss(1, abs_radius) * self.change_rate
-        if 1 - self.radius_low > self.now_percentage or self.now_percentage > self.radius_high:
+        self.now_percentage *= 1 + u_d * abs(random.gauss(0, abs_radius)) * self.change_rate
+        if 1 + self.radius_low > self.now_percentage or self.now_percentage > 1 + self.radius_high:
             self.now_percentage = 1.0
         return self.value * self.now_percentage
 
@@ -85,10 +85,11 @@ class FIFOCache:
 
 
 class VirtualStation:
-    def __init__(self, cache_size, bandwidth, r1, r1_r=0.7):
+    def __init__(self, cache_size, bandwidth, r1, r1_r=0.1):
         """
         初始化
         :param cache_size: 缓存总大小
+        :param bandwidth: 带宽
         :param r1: 回程速率基准值
         :param r1_r: 回程速率浮动值
         """
@@ -112,9 +113,12 @@ class VirtualStation:
         # 主动缓存
         # 受欢迎视频排名
         self.popularity_videos = []
-        # 主动缓存大小
+        # 当前主动缓存大小
         self.active_cache_size = 0
+        # 主动缓存的视频
         self.cached_popularity_videos = {}
+        # 所有流行视频
+        self.cached_popularity_videos_all = {}
         self.update_popularity_videos()
 
         # 每轮次统计信息
@@ -136,7 +140,8 @@ class VirtualStation:
     @staticmethod
     def _popularity(video):
         """计算视频受欢迎度"""
-        return 1.2
+        a1, a2, a3, a4 = 0.5, 1 / 3, 1 / 12, 1 / 12
+        return a1 * video.view + a2 * video.like + a3 * video.share + a4 * video.comment
 
     def update_passive_cache(self, is_migrate=False):
         """
@@ -155,10 +160,15 @@ class VirtualStation:
         self.popularity_videos = sorted(VirtualServer.video_list, key=lambda _v: self._popularity(_v), reverse=True)
         self.active_cache_size = 0
         self.cached_popularity_videos = {}
+        self.cached_popularity_videos_all = {}
         for i in range(self.cache_xn):
             v = self.popularity_videos[i]
             self.active_cache_size += self._cal_video_cache_size(v)
-            self.cached_popularity_videos[v.id] = v
+            self.cached_popularity_videos[v.id] = (v, i + 1)
+        self.cached_popularity_videos_all = self.cached_popularity_videos.copy()
+        for i in range(self.cache_xn, len(self.popularity_videos)):
+            v = self.popularity_videos[i]
+            self.cached_popularity_videos_all[v.id] = (v, i + 1)
 
     def reset_statistics(self):
         """重置统计信息"""
@@ -188,7 +198,7 @@ class VirtualStation:
         self._update_r0(r0)
 
         if v_id in self.cached_popularity_videos:
-            v = self.cached_popularity_videos[v_id]
+            v, _ = self.cached_popularity_videos[v_id]
             self.hit_num += 1
             return self._cal_cost(r0, v_id, v)
         elif v_id in self.video_passive_cache.cache:

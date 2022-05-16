@@ -24,8 +24,8 @@ class Video:
     # 从0开始编号
     now_id = -1
     # 假设60s视频对应内存大小为1MB
-    SIZE_RANGE = (5 / 60, 3)
-    VIDEO_PART_SIZE = 0.2
+    SIZE_RANGE = (1.96, 24.5)
+    VIDEO_PART_SIZE = 0.1
 
     @classmethod
     def create_video(cls):
@@ -45,15 +45,15 @@ class Video:
         # 转发量
         self.share = int((self.view + 5 * self.like) / 240 * random.gauss(1.0, 0.4))
         # 评论量
-        self.comment = self.share + self.like * random.gauss(1.0, 0.2) + self.view * random.gauss(0.1, 0.1)
+        self.comment = int(self.share + self.like * random.gauss(1.0, 0.2) + self.view * random.gauss(0.1, 0.1))
         if random.random() < 0.2:
-            self.view *= random.gauss(0.25, 0.1)
+            self.view *= random.gauss(16, 10.0)
             self.view = int(self.view)
-            self.like *= random.gauss(0.25, 0.1)
+            self.like *= random.gauss(16, 10.0)
             self.like = int(self.like)
-            self.share *= random.gauss(0.25, 0.1)
+            self.share *= random.gauss(16, 10.0)
             self.share = int(self.share)
-            self.comment *= random.gauss(0.25, 0.1)
+            self.comment *= random.gauss(16, 10.0)
             self.comment = int(self.comment)
 
         # 视频分类

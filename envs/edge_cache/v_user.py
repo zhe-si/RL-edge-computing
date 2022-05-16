@@ -13,11 +13,11 @@ random.seed(71)
 
 class VirtualUser:
     # TODO: 用户终端播放速率？应该是定值。。。
-    PLAY_SPEED = 1
+    PLAY_SPEED = 0.1
     # TODO: 用户忍受的时延
-    TOLERABLE_DELAY = 0.5
+    TOLERABLE_DELAY = 3
 
-    def __init__(self, r0, r0_r=0.3):
+    def __init__(self, r0, r0_r=0.1):
         self.looked_videos = []
         self.r0 = RandomChangeValue(r0, r0_r, r0_r)
         self.looked_list_size = 10
@@ -43,6 +43,13 @@ class VirtualUser:
             if random.random() < 0.01:
                 video.share += 1
             if random.random() < 0.2:
+                video.comment += 1
+        else:
+            if random.random() < 0.5:
+                video.like += 1
+            if random.random() < 0.08:
+                video.share += 1
+            if random.random() < 0.4:
                 video.comment += 1
 
         cache_r_t, v_r_t = virtual_station.get_video(video.id, self.r0.get_now_value())
