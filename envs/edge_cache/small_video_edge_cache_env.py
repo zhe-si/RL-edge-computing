@@ -111,7 +111,6 @@ class SmallVideoEdgeCacheEnv(AbsEnv):
         # print()
 
         done, punish = self._check_is_done(max_v_r_t, max_cache_r_t)
-        # done, punish = False, None
         if punish is not None:
             utility = punish
         else:

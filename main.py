@@ -58,7 +58,7 @@ def train(ddpg, env: AbsEnv, explore_degree,
             ep_reward += r
             all_step += 1
 
-            if j == MAX_EP_STEPS - 1 or done:
+            if j == MAX_EP_STEPS - 1 or (done and ddpg.pointer > MEMORY_CAPACITY):
                 print('Episode:', i, ' Reward: %i' % int(ep_reward), 'Explore: %.2f' % explore_degree, )
                 if i % 5 == 0 and ep_reward > max_reward and ddpg.pointer > MEMORY_CAPACITY:
                     ddpg.save_model(global_step=i)
